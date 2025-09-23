@@ -1,0 +1,31 @@
+{
+  "name": "insy7315icetasks3and4",
+  "version": "1.0.0",
+  "description": "Security is essential in live polling apps because the integrity of results relies on preventing cheating, spam, and manipulation. Without safeguards, polls can be overrun by bots or false inputs, rendering them useless. Additionally, weak privacy controls could expose participant data or responses, undermining trust in the platform. Ensuring secure participation protects both the credibility of results and the users’ privacy.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ST10267383/INSY7315IceTasks3and4.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ST10267383/INSY7315IceTasks3and4/issues"
+  },
+  "homepage": "https://github.com/ST10267383/INSY7315IceTasks3and4#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.1.0",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

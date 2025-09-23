@@ -1,3 +1,3 @@
 # INSY7315IceTasks3and4
 
-Security is essential in live polling apps because the integrity of results relies on preventing cheating, spam, and manipulation. Without safeguards, polls can be overrun by bots or false inputs, rendering them useless. Additionally, weak privacy controls could expose participant data or responses, undermining trust in the platform. Ensuring secure participation protects both the credibility of results and the users’ privacy.
+01 - Security is essential in live polling apps because the integrity of results relies on preventing cheating, spam, and manipulation. Without safeguards, polls can be overrun by bots or false inputs, rendering them useless. Additionally, weak privacy controls could expose participant data or responses, undermining trust in the platform. Ensuring secure participation protects both the credibility of results and the users’ privacy.
