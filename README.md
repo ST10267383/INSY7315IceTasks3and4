@@ -7,3 +7,5 @@
 02 - SSL REFLECTION
 
 adding SSL/HTTPS didnt necessarily affect the application in anyway, there were no challenges in trusting the certificate although the cnf file always gives me issues, especially the req which never adds up during the command line. I wouldn't take any different steps in preparing for production deployment. 
+
+03 - JWT (JSON Web Token) is a secure way to transmit data between a client and server, most often used for authentication. It eliminates the need for server-side session storage by embedding user information and a signature in the token. However, if a web application does not use SSL/TLS, attackers can intercept JWTs and take over accounts. Misconfigurations, such as using the “none” algorithm, have led to real-world breaches where attackers forged tokens. This makes it critical to both configure JWT properly and ensure all communication is encrypted.
