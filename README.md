@@ -1,3 +1,9 @@
 # INSY7315IceTasks3and4
 
 01 - Security is essential in live polling apps because the integrity of results relies on preventing cheating, spam, and manipulation. Without safeguards, polls can be overrun by bots or false inputs, rendering them useless. Additionally, weak privacy controls could expose participant data or responses, undermining trust in the platform. Ensuring secure participation protects both the credibility of results and the users’ privacy.
+
+02- The function of SSL/TLS is that it is a security protocl which encrypts communicaition between the clients and servers, this unification of function forms the foundations of HTTPS. Although, unlike HTTP, HTTPS does not send information in plain text and instead is transmitted securely which cannot be easily intercepted. SSL is crucial in web applications to protect sensitive data such as passwords, personal details, and payment information. Without SSL, attackers could exploit vulnerabilities through man-in-the-middle attacks or data theft. A real-world case is the 2018 British Airways breach, where weak HTTPS protections contributed to the theft of customer credit card data. This demonstrates why SSL is essential for both security and user trust in modern web applications.
+
+02 - SSL REFLECTION
+
+adding SSL/HTTPS didnt necessarily affect the application in anyway, there were no challenges in trusting the certificate although the cnf file always gives me issues, especially the req which never adds up during the command line. I wouldn't take any different steps in preparing for production deployment. 
