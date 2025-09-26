@@ -84,5 +84,11 @@ app.get('/csp-demo', (req, res) => {
 app.get('/', (req, res) => {
   res.send('PulseVote API running!');
 });
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    ok: true,
+    ts: Date.now(),
+  });
+});
 
 module.exports = app;
