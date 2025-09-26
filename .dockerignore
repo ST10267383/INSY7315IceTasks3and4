@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.vscode
+coverage
+.circleci
+ssl
+.env
+test
+jest.config.js
+eslint.config.cjs

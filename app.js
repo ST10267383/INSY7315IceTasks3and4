@@ -1,93 +1,102 @@
+// app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
-const organisationRoutes = require('./routes/organisationRoutes');
-const pollRoutes = require('./routes/pollRoutes');
-
 
 const authRoutes = require('./routes/authRoutes');
+const organisationRoutes = require('./routes/organisationRoutes');
+const pollRoutes = require('./routes/pollRoutes');
 const { protect } = require('./middleware/authMiddleware');
 
 dotenv.config();
 
 const app = express();
 
-app.set("trust proxy", 1);
-
-/* ---------------- Security headers ---------------- */
+/* ------------------------- Security headers (Helmet) ------------------------ */
 app.use(helmet());
 
-// Content Security Policy (CSP)
+/* ----------------------- Content Security Policy (CSP) ---------------------- */
+const defaultConnect = [
+  "'self'",
+  "http://localhost:5000",
+  "https://localhost:5000",
+  "http://localhost:5173",
+  "https://localhost:5173",
+  "ws://localhost:5173",
+  "wss://localhost:5173",
+];
+
+const envConnect =
+  (process.env.CSP_CONNECT || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
 app.use(
   helmet.contentSecurityPolicy({
-    useDefaults: true, // includes default-src 'self', base-uri 'self', etc.
+    useDefaults: true,
     directives: {
-      "default-src": ["'self'"],
-      "script-src": ["'self'"], // no inline/remote scripts
-      "style-src": ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      "font-src": ["'self'", "https://fonts.gstatic.com"],
-      "img-src": ["'self'", "data:"],
-      "connect-src": [
-        "'self'",
-        "http://localhost:5173",
-        "https://localhost:5173",
-        "ws://localhost:5173",
-        "wss://localhost:5173"
-      ],
-      "frame-ancestors": ["'self'"],
-      "object-src": ["'none'"],
-      // In production you can enable the next line to auto-upgrade http->https:
-      // "upgrade-insecure-requests": [],
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"], // add CDNs if you use any
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: envConnect.length ? envConnect : defaultConnect,
     },
-    // reportOnly: true, // uncomment to test without blocking first
   })
 );
 
-/* ---------------- CORS & parsers ---------------- */
+/* --------------------------- CORS (configurable) ---------------------------- */
+const allowed =
+  (process.env.CORS_ORIGINS ||
+    'http://localhost:5173,https://localhost:5173')
+    .split(',')
+    .map(s => s.trim());
+
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://localhost:5173"],
+    origin(origin, cb) {
+      // allow server-to-server or curl (no Origin header)
+      if (!origin) return cb(null, true);
+      if (allowed.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
   })
 );
-app.use(express.json());
 
-/* ---------------- Routes ---------------- */
+/* --------------------------- parsers & proxy trust -------------------------- */
+app.use(express.json());
+app.set('trust proxy', 1); // needed if you ever run behind a reverse proxy
+
+/* --------------------------------- Routes ---------------------------------- */
 app.use('/api/auth', authRoutes);
 app.use('/api/organisations', organisationRoutes);
 app.use('/api/polls', pollRoutes);
 
-// Protected test endpoint
-app.get('/api/protected', protect, (req, res) => {
+/* ------------------------------ Health endpoint ----------------------------- */
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, ts: Date.now() });
+});
+
+/* --------------------------- Friendly test endpoints ------------------------ */
+app.get('/', (_req, res) => {
+  res.send('PulseVote API running!');
+});
+
+app.get('/test', (_req, res) => {
   res.json({
-    message: `Welcome, user ${req.user.id}! You have accessed protected data.`,
+    message: 'This is a test endpoint from PulseVote API!',
+    status: 'success',
     timestamp: new Date(),
   });
 });
 
-// Optional: quick page to SEE CSP blocking inline script & remote image
-app.get('/csp-demo', (req, res) => {
-  res.type('html').send(`
-    <!doctype html>
-    <meta charset="utf-8" />
-    <title>CSP Demo</title>
-    <h1>CSP demo page</h1>
-    <!-- This inline script should be BLOCKED by CSP -->
-    <script>console.log('If you see this, CSP failed'); alert('inline script ran');</script>
-    <!-- This remote image should be BLOCKED by CSP -->
-    <img src="https://picsum.photos/200" alt="blocked by CSP">
-  `);
-});
-
-// Health check
-app.get('/', (req, res) => {
-  res.send('PulseVote API running!');
-});
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    ok: true,
-    ts: Date.now(),
+app.get('/api/protected', protect, (req, res) => {
+  res.json({
+    message: `Welcome, user ${req.user.id}! You have accessed protected data.`,
+    timestamp: new Date(),
   });
 });
 
