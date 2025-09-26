@@ -1,15 +1,31 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+// models/User.js
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
-const userSchema = new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true }
-});
+const roleSchema = new mongoose.Schema(
+  {
+    // If you later add orgs, keep this:
+    organisationId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organisation', required: false },
+    role: { type: String, enum: ['admin', 'manager', 'user'], required: true },
+  },
+  { _id: false }
+);
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+const userSchema = new mongoose.Schema(
+  {
+    // keep name if you already collect it; it's optional here to match the guide
+    name: { type: String, required: false, trim: true },
+    email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+    password: { type: String, required: true, select: false },
+    roles:   { type: [roleSchema], default: [{ role: 'user' }] },
+  },
+  { timestamps: true }
+);
+
+// hash password
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
@@ -17,4 +33,4 @@ userSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);

@@ -1,19 +1,18 @@
 // routes/authRoutes.js
 const express = require('express');
 const { body } = require('express-validator');
-const { register, login } = require('../controllers/authController');
+const {
+  registerUser,
+  registerManager,
+  registerAdmin,
+  login,
+} = require('../controllers/authController');
+const { protect } = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/roleMiddleware');
 
 const router = express.Router();
 
-/**
- * Validators
- * NOTE: Do NOT .escape() passwords (it mutates characters and will break login).
- */
-const nameValidator = body('name')
-  .trim()
-  .notEmpty().withMessage('Name is required')
-  .isLength({ max: 100 }).withMessage('Name is too long');
-
+/* validators */
 const emailValidator = body('email')
   .trim()
   .isEmail().withMessage('Email must be valid')
@@ -26,13 +25,27 @@ const passwordValidator = body('password')
   .matches(/\d/).withMessage('Password must include a number')
   .trim();
 
-// Register
-router.post('/register', [nameValidator, emailValidator, passwordValidator], register);
+/* routes from the guide */
 
-// Login (email + non-empty password)
+// public user registration
+router.post('/register-user', [emailValidator, passwordValidator], registerUser);
+
+// manager registration (admin only)
+router.post(
+  '/register-manager',
+  protect,
+  requireRole('admin'),
+  [emailValidator, passwordValidator],
+  registerManager
+);
+
+// admin registration (unprotected route, controller enforces bootstrap rule)
+router.post('/register-admin', [emailValidator, passwordValidator], registerAdmin);
+
+// login
 router.post(
   '/login',
-  [emailValidator, body('password').notEmpty().withMessage('Password is required').trim()],
+  [emailValidator, body('password').notEmpty().withMessage('Password required').trim()],
   login
 );
 

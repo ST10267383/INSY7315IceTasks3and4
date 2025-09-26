@@ -1,0 +1,22 @@
+// routes/organisationRoutes.js
+const express = require('express');
+const { protect } = require('../middleware/authMiddleware');
+const { requireRole } = require('../middleware/roleMiddleware');
+const {
+  createOrganisation,
+  generateJoinCode,
+  joinOrganisation,
+} = require('../controllers/organisationController');
+
+const router = express.Router();
+
+// Only managers can create organisations
+router.post('/create-organisation', protect, requireRole('manager'), createOrganisation);
+
+// Only managers can generate join codes (scoped by :organisationId)
+router.post('/generate-join-code/:organisationId', protect, requireRole('manager'), generateJoinCode);
+
+// Registered users can join
+router.post('/join-organisation', protect, joinOrganisation);
+
+module.exports = router;

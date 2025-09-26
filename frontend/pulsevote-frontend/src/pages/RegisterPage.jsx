@@ -36,7 +36,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await api.post('/api/auth/register', form);
+      await api.post('/api/auth/register-user', form);
       setMsg({ type: 'success', text: 'Registered successfully. Redirecting to login…' });
       setTimeout(() => navigate('/login'), 800);
     } catch (err) {

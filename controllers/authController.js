@@ -1,85 +1,117 @@
-const { validationResult } = require('express-validator');
+// controllers/authController.js
 const jwt = require('jsonwebtoken');
+const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 
-const signToken = (userId) =>
-  jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '1h' });
+const generateToken = (user) =>
+  jwt.sign(
+    { id: user._id, email: user.email, roles: user.roles },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
 
-/**
- * POST /api/auth/register
- * Body: { name, email, password }
- */
-exports.register = async (req, res) => {
-  // 1) validate request (from express-validator in routes)
+/* ---------- Register: normal user ---------- */
+exports.registerUser = async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
+  if (!errors.isEmpty())
     return res.status(400).json({ message: 'Invalid input', errors: errors.array() });
-  }
 
+  const { email, password } = req.body;
   try {
-    const { name, email, password } = req.body;
-
-    // 2) unique email
     const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(409).json({ message: 'User already exists' });
-    }
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
 
-    // 3) create user
-    // NOTE: If your User schema hashes in a pre('save') hook and has comparePassword,
-    // just pass the raw password here (as we do below).
-    const user = await User.create({ name, email, password });
-
-    // 4) issue token
-    const token = signToken(user._id);
-
-    return res.status(201).json({
-      user: { id: user._id, name: user.name, email: user.email },
-      token,
+    const user = await User.create({
+      email,
+      password,                        // hashed by pre('save')
+      roles: [{ organisationId: null, role: 'user' }],
     });
+
+    const token = generateToken(user);
+    return res.status(201).json({ message: 'User registered', token });
   } catch (err) {
-    console.error('Register error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-/**
- * POST /api/auth/login
- * Body: { email, password }
- */
-exports.login = async (req, res) => {
-  // 1) validate request (from express-validator in routes)
+/* ---------- Register: manager (admin only via route middleware) ---------- */
+exports.registerManager = async (req, res) => {
   const errors = validationResult(req);
-  if (!errors.isEmpty()) {
+  if (!errors.isEmpty())
     return res.status(400).json({ message: 'Invalid input', errors: errors.array() });
+
+  const { email, password } = req.body;
+  try {
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
+
+    const managerUser = await User.create({
+      email,
+      password,
+      roles: [{ organisationId: null, role: 'manager' }],
+    });
+
+    const token = generateToken(managerUser);
+    return res.status(201).json({ message: 'Manager registered', token });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error: ' + err });
   }
+};
+
+/* ---------- Register: admin (bootstrap first admin; else only admins) ---------- */
+exports.registerAdmin = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty())
+    return res.status(400).json({ message: 'Invalid input', errors: errors.array() });
+
+  const { email, password } = req.body;
 
   try {
-    const { email, password } = req.body;
-
-    // 2) find user (+password in case your schema sets select:false)
-    const user = await User.findOne({ email }).select('+password');
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-
-    // 3) verify password
-    let ok = false;
-    if (typeof user.comparePassword === 'function') {
-      ok = await user.comparePassword(password);        // schema method
-    } else {
-      ok = await bcrypt.compare(password, user.password); // fallback
+    const adminExists = await User.exists({ 'roles.role': 'admin' });
+    if (adminExists) {
+      // Only an admin can create another admin once one exists
+      const requestingUser = await User.findById(req.user?.id);
+      const isAdmin = requestingUser?.roles?.some((r) => r.role === 'admin');
+      if (!isAdmin) return res.status(403).json({ message: 'Only admins can create admins' });
     }
-    if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // 4) token
-    const token = signToken(user._id);
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ message: 'Email already exists' });
 
-    return res.json({
-      user: { id: user._id, name: user.name, email: user.email },
-      token,
+    const adminUser = await User.create({
+      email,
+      password,
+      roles: [{ organisationId: null, role: 'admin' }],
     });
+
+    const token = generateToken(adminUser);
+    return res.status(201).json({ message: 'Admin registered', token });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ error: 'Server error: ' + err });
+  }
+};
+
+/* ---------- Login ---------- */
+exports.login = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty())
+    return res.status(400).json({ message: 'Invalid input', errors: errors.array() });
+
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email }).select('+password roles email');
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const ok = typeof user.comparePassword === 'function'
+      ? await user.comparePassword(password)
+      : await bcrypt.compare(password, user.password);
+
+    if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const token = generateToken(user);
+    return res.json({ token });
+  } catch (err) {
+    return res.status(500).json({ error: 'Server error' });
   }
 };
