@@ -1,51 +1,52 @@
-// routes/authRoutes.js
-const express = require('express');
-const { body } = require('express-validator');
+const express = require("express");
+const router = express.Router();
+
 const {
   registerUser,
   registerManager,
   registerAdmin,
   login,
-} = require('../controllers/authController');
-const { protect } = require('../middleware/authMiddleware');
-const { requireRole } = require('../middleware/roleMiddleware');
+} = require("../controllers/authController");
 
-const router = express.Router();
+const { emailValidator, passwordValidator } = require("../validators");
+const { protect } = require("../middleware/authMiddleware");
+const { requireRole } = require("../middleware/roleMiddleware");
 
-/* validators */
-const emailValidator = body('email')
-  .trim()
-  .isEmail().withMessage('Email must be valid')
-  .normalizeEmail();
+// NEW: rate limiters
+const { registerLimiter, loginLimiter } = require("../middleware/rateLimiter");
 
-const passwordValidator = body('password')
-  .isString()
-  .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-  .matches(/[A-Za-z]/).withMessage('Password must include a letter')
-  .matches(/\d/).withMessage('Password must include a number')
-  .trim();
+// also used for the login password check
+const { body } = require("express-validator");
 
-/* routes from the guide */
-
-// public user registration
-router.post('/register-user', [emailValidator, passwordValidator], registerUser);
-
-// manager registration (admin only)
+// --- Registration routes ---
 router.post(
-  '/register-manager',
+  "/register-user",
+  registerLimiter,
+  [emailValidator, passwordValidator],
+  registerUser
+);
+
+router.post(
+  "/register-manager",
   protect,
-  requireRole('admin'),
+  requireRole("admin"),
+  registerLimiter,
   [emailValidator, passwordValidator],
   registerManager
 );
 
-// admin registration (unprotected route, controller enforces bootstrap rule)
-router.post('/register-admin', [emailValidator, passwordValidator], registerAdmin);
-
-// login
 router.post(
-  '/login',
-  [emailValidator, body('password').notEmpty().withMessage('Password required').trim()],
+  "/register-admin",
+  registerLimiter,
+  [emailValidator, passwordValidator],
+  registerAdmin
+);
+
+// --- Login route ---
+router.post(
+  "/login",
+  loginLimiter,
+  [emailValidator, body("password").notEmpty().trim().escape()],
   login
 );
 

@@ -5,12 +5,15 @@ const dotenv = require('dotenv');
 const organisationRoutes = require('./routes/organisationRoutes');
 const pollRoutes = require('./routes/pollRoutes');
 
+
 const authRoutes = require('./routes/authRoutes');
 const { protect } = require('./middleware/authMiddleware');
 
 dotenv.config();
 
 const app = express();
+
+app.set("trust proxy", 1);
 
 /* ---------------- Security headers ---------------- */
 app.use(helmet());
